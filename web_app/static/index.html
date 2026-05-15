@@ -1,0 +1,1621 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>海信自动化报告工作台</title>
+  <style>
+    :root {
+      --teal: #00afa5;
+      --teal-dark: #008d86;
+      --teal-soft: #e8fbf9;
+      --ink: #102033;
+      --text: #29384a;
+      --muted: #6b7788;
+      --line: #dbe3ee;
+      --line-soft: #edf2f7;
+      --bg: #f5f8fb;
+      --card: #ffffff;
+      --success: #12b886;
+      --danger: #d92d20;
+      --warning: #f59f00;
+      --shadow: 0 10px 30px rgba(14, 37, 66, 0.08);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.5;
+    }
+
+    .app { min-height: 100vh; padding: 24px; }
+    .shell { max-width: 1460px; margin: 0 auto; }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .brand-title { display: flex; align-items: center; gap: 14px; }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--teal), #35d1c7);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 800;
+      box-shadow: 0 8px 18px rgba(0, 175, 165, .25);
+    }
+
+    h1 { margin: 0; font-size: 24px; color: var(--ink); letter-spacing: 0; }
+    .subtitle { margin-top: 4px; font-size: 13px; color: var(--muted); }
+    .top-pill {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.84);
+      padding: 9px 14px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 430px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel, .result-panel, .runtime-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header, .runtime-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line-soft);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .panel-title { margin: 0; color: var(--ink); font-size: 17px; font-weight: 750; }
+    .panel-body { padding: 18px 20px 20px; }
+
+    .section {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .section:first-child { padding-top: 0; }
+    .section:last-child { border-bottom: 0; padding-bottom: 0; }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 750;
+      color: var(--ink);
+      margin: 0 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::before {
+      content: "";
+      width: 4px;
+      height: 15px;
+      border-radius: 999px;
+      background: var(--teal);
+      display: inline-block;
+    }
+
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #3c4a5d;
+      margin-bottom: 7px;
+      font-weight: 650;
+    }
+
+    input, textarea {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: .16s;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(0, 175, 165, .12);
+    }
+
+    textarea { min-height: 70px; resize: vertical; }
+    .date-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .select-like-trigger {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 0 12px;
+      background: #fff;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .select-caret { color: var(--muted); font-size: 13px; }
+
+    .brand-chip-row, .competitor-chip-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .choice-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 3px 9px;
+      border-radius: 8px;
+      border: 1px solid #a9e9e4;
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .count-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 3px 9px;
+      border-radius: 8px;
+      background: #eef4f8;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .multi-select-field {
+      position: relative;
+      overflow: visible;
+    }
+
+    .multi-select-popover {
+      position: absolute;
+      z-index: 30;
+      top: calc(100% + 8px);
+      left: 0;
+      width: 100%;
+      min-width: 260px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 10px;
+    }
+
+    .multi-option {
+      min-height: 34px;
+      padding: 0 8px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .multi-option:hover { background: #f4f8fb; }
+    .multi-option input { width: auto; min-height: auto; }
+    .multi-option input { accent-color: var(--teal); }
+
+    .multi-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      border-top: 1px solid var(--line-soft);
+      margin-top: 8px;
+      padding-top: 10px;
+    }
+
+    .mini-button {
+      min-height: 32px;
+      padding: 0 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      background: #eef4f8;
+      color: var(--ink);
+    }
+
+    .mini-button.primary-mini {
+      background: var(--teal);
+      color: #fff;
+    }
+
+    .date-range-field {
+      position: relative;
+    }
+
+    .date-range-trigger {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 0 12px;
+      background: #fff;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .date-range-popover {
+      position: fixed;
+      z-index: 9999;
+      width: min(760px, calc(100vw - 48px));
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 18px 45px rgba(14, 37, 66, .16);
+      padding: 14px;
+    }
+
+    .calendar-toolbar {
+      display: grid;
+      grid-template-columns: 40px 1fr 1fr 40px;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .calendar-nav {
+      width: 34px;
+      height: 34px;
+      min-height: 34px;
+      padding: 0;
+      border-radius: 50%;
+      background: #eef4f8;
+      color: var(--ink);
+      font-size: 18px;
+    }
+
+    .calendar-toolbar-title {
+      text-align: center;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .calendar-title {
+      text-align: center;
+      color: var(--ink);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .calendar-weekdays, .calendar-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .calendar-weekday {
+      color: var(--muted);
+      text-align: center;
+      font-size: 12px;
+      font-weight: 750;
+      padding: 4px 0;
+    }
+
+    .calendar-day {
+      min-height: 34px;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font-size: 13px;
+      padding: 0;
+    }
+
+    .calendar-day.muted {
+      color: #b8c2cf;
+      background: #f8fafc;
+    }
+
+    .calendar-day.in-range {
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+    }
+
+    .calendar-day.range-edge {
+      background: var(--teal);
+      color: #fff;
+      font-weight: 850;
+    }
+
+    .calendar-day.today:not(.range-edge) {
+      box-shadow: inset 0 0 0 1px var(--teal);
+    }
+
+    .fixed-box {
+      border: 1px solid var(--line);
+      background: #f7fafc;
+      border-radius: 9px;
+      padding: 10px 12px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .readonly-period {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      background: #f7fafc;
+      border-radius: 9px;
+      padding: 10px 12px;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 750;
+      display: flex;
+      align-items: center;
+    }
+
+    .scope-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .empty-state {
+      border: 1px dashed var(--line);
+      border-radius: 9px;
+      padding: 16px;
+      color: var(--muted);
+      background: #f8fafc;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .scope-card {
+      border: 1px solid var(--line);
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 13px 14px;
+    }
+
+    .scope-card h3 {
+      margin: 0 0 8px;
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.45;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .scope-subtitle {
+      margin: -2px 0 9px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .scope-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .hint {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    button, .link-button {
+      border: 0;
+      border-radius: 10px;
+      min-height: 44px;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 750;
+      cursor: pointer;
+      transition: .16s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .primary { background: var(--teal); color: #fff; }
+    .primary:hover:not(:disabled) { background: var(--teal-dark); }
+    .secondary { background: #eef4f8; color: var(--ink); }
+    .secondary:hover:not(:disabled) { background: #e4edf4; }
+    button:disabled, .link-button.disabled {
+      opacity: .48;
+      cursor: not-allowed;
+    }
+
+    .status-pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef4f8;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+    .status-pill.saved { background: #e8f8f1; color: #087f5b; }
+    .status-pill.running { background: #fff4d6; color: #936100; }
+    .status-pill.failed { background: #fdecec; color: var(--danger); }
+
+    .right-stack { display: grid; gap: 18px; }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stage-card {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 92px;
+      transition: .16s;
+    }
+    .stage-card.running {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(0, 175, 165, .12);
+      animation: pulse 1.2s infinite;
+    }
+    .stage-card.success { border-color: #b8ead5; background: #f0fbf6; }
+    .stage-card.failed { border-color: #ffc9c9; background: #fff5f5; }
+    .stage-card.skipped { border-color: #e2e8f0; background: #f8fafc; }
+
+    @keyframes pulse {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
+      100% { transform: translateY(0); }
+    }
+
+    .stage-index {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+    .stage-name { margin: 0; color: var(--ink); font-size: 13px; font-weight: 800; }
+    .stage-desc { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+
+    .logs {
+      height: 180px;
+      overflow: auto;
+      background: #0f172a;
+      color: #dbeafe;
+      border-radius: 12px;
+      padding: 12px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .preview-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    iframe {
+      width: 100%;
+      height: 760px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .hidden { display: none !important; }
+    .error-text { color: var(--danger); font-size: 13px; margin-top: 10px; }
+
+    .failure-panel {
+      border: 1px solid #ffc9c9;
+      background: #fff5f5;
+      color: #b42318;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .report-card {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .report-title {
+      margin: 0;
+      color: var(--ink);
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .report-meta {
+      display: grid;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .report-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .danger-button {
+      background: #fdecec;
+      color: var(--danger);
+    }
+
+    .login-view {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: var(--bg);
+    }
+
+    .login-card {
+      width: min(420px, 100%);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .login-card h1 {
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+
+    .login-actions {
+      margin-top: 16px;
+      display: grid;
+    }
+
+    .account-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .logout-button {
+      min-height: 34px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: #eef4f8;
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    @media (max-width: 1120px) {
+      .layout { grid-template-columns: 1fr; }
+      .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <section id="loginView" class="login-view hidden">
+    <form id="loginForm" class="login-card">
+      <h1>海信自动化报告生成工作台</h1>
+      <div class="subtitle">请登录后继续</div>
+      <div class="field" style="margin-top: 18px;">
+        <label for="loginUsername">用户名</label>
+        <input id="loginUsername" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="loginPassword">密码</label>
+        <input id="loginPassword" type="password" autocomplete="current-password">
+      </div>
+      <div class="login-actions">
+        <button class="primary" type="submit">登录</button>
+      </div>
+      <div id="loginError" class="error-text hidden"></div>
+    </form>
+  </section>
+
+  <div id="appView" class="app hidden">
+    <div class="shell">
+      <div class="topbar">
+        <div class="brand-title">
+          <div class="logo">HS</div>
+          <div>
+            <h1>海信自动化报告生成工作台</h1>
+            <div class="subtitle">配置监测周期与品牌范围，一键生成本地 HTML 报告预览</div>
+          </div>
+        </div>
+        <div class="account-bar">
+          <div id="currentAccount" class="top-pill">当前账号：-</div>
+          <button id="logoutBtn" class="logout-button" type="button">退出登录</button>
+        </div>
+      </div>
+
+      <div class="layout">
+        <section class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title">报告配置</h2>
+            <span id="configStatus" class="status-pill">未保存</span>
+          </div>
+          <div class="panel-body">
+            <div class="section">
+              <p class="section-title">基础信息</p>
+              <div class="field">
+                <label>本品品牌</label>
+                <button id="brandSelect" class="select-like-trigger" type="button" aria-label="本品品牌">
+                  <span class="brand-chip-row"><span class="choice-chip">海信</span></span>
+                  <span class="select-caret">✓</span>
+                </button>
+              </div>
+              <div class="field multi-select-field">
+                <label for="competitorTrigger">对标品牌</label>
+                <button id="competitorTrigger" class="select-like-trigger" type="button" aria-haspopup="dialog" aria-expanded="false">
+                  <span id="competitorSummary" class="competitor-chip-row"></span>
+                  <span class="select-caret">⌄</span>
+                </button>
+                <div id="competitorPopover" class="multi-select-popover hidden">
+                  <label class="multi-option"><input id="competitorAll" type="checkbox" checked> 全选</label>
+                  <label class="multi-option"><input class="competitor-option" type="checkbox" value="美的" checked> 美的</label>
+                  <label class="multi-option"><input class="competitor-option" type="checkbox" value="海尔" checked> 海尔</label>
+                  <label class="multi-option"><input class="competitor-option" type="checkbox" value="TCL" checked> TCL</label>
+                  <div class="multi-actions">
+                    <button id="competitorCancel" class="mini-button" type="button">取消</button>
+                    <button id="competitorClear" class="mini-button" type="button">清空</button>
+                    <button id="competitorConfirm" class="mini-button primary-mini" type="button">确定</button>
+                  </div>
+                </div>
+                <div class="hint">当前仅支持固定对标品牌：美的、海尔、TCL。</div>
+              </div>
+              <div class="field date-range-field">
+                <label for="dateRangeTrigger">监测周期</label>
+                <button id="dateRangeTrigger" class="date-range-trigger" type="button" aria-haspopup="dialog" aria-expanded="false">
+                  <span id="rangeStartText">2025-01-01</span>
+                  <span>-</span>
+                  <span id="rangeEndText">2025-01-07</span>
+                </button>
+                <div id="dateRangePopover" class="date-range-popover hidden">
+                  <div class="calendar-toolbar">
+                    <button id="prevMonthBtn" class="calendar-nav" type="button" aria-label="上个月">‹</button>
+                    <div id="leftMonthTitle" class="calendar-toolbar-title">2025年1月</div>
+                    <div id="rightMonthTitle" class="calendar-toolbar-title">2025年2月</div>
+                    <button id="nextMonthBtn" class="calendar-nav" type="button" aria-label="下个月">›</button>
+                  </div>
+                  <div id="calendarGrid" class="calendar-grid"></div>
+                </div>
+              </div>
+              <div class="field">
+                <label>同比周期</label>
+                <div id="comparePeriodText" class="readonly-period">2024-01-01 - 2024-01-07</div>
+              </div>
+            </div>
+
+            <div class="section">
+              <p class="section-title">关键词与过滤</p>
+              <div class="field">
+                <label for="keywordsRaw">内容包含</label>
+                <textarea id="keywordsRaw" placeholder='请输入关键词，"+"代表且，"|"代表或，"()"代表词组'></textarea>
+              </div>
+              <div class="field">
+                <label for="filterWordsRaw">内容过滤</label>
+                <textarea id="filterWordsRaw" placeholder='请输入过滤词，"+"代表且，"|"代表或，"()"代表词组'></textarea>
+              </div>
+            </div>
+
+            <div class="section">
+              <p class="section-title">数据范围</p>
+              <div class="scope-grid">
+                <div class="scope-card">
+                  <h3>1.1 品牌整体表现</h3>
+                  <div class="tag-row">
+                    <span class="scope-tag">八个站点全选</span>
+                  </div>
+                </div>
+                <div class="scope-card">
+                  <h3>1.2 品牌整体分平台表现</h3>
+                  <div class="tag-row">
+                    <span class="scope-tag">抖音</span>
+                    <span class="scope-tag">小红书</span>
+                    <span class="scope-tag">微信视频号</span>
+                    <span class="scope-tag">B站</span>
+                    <span class="scope-tag">知乎</span>
+                  </div>
+                </div>
+                <div class="scope-card">
+                  <h3>竞品本周动态</h3>
+                  <p class="scope-subtitle">选中平台 Top30 帖子</p>
+                  <div class="tag-row">
+                    <span class="scope-tag">抖音</span>
+                    <span class="scope-tag">小红书</span>
+                    <span class="scope-tag">微信视频号</span>
+                    <span class="scope-tag">B站</span>
+                    <span class="scope-tag">知乎</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button id="saveConfigBtn" class="secondary">确定配置</button>
+              <button id="generateBtn" class="primary" disabled>生成报告</button>
+            </div>
+            <div id="configMessage" class="hint">请先保存配置。</div>
+            <div id="errorBox" class="error-text hidden"></div>
+          </div>
+        </section>
+
+        <div class="right-stack">
+          <section class="runtime-card">
+            <div class="runtime-header">
+              <h2 class="panel-title">生成进度</h2>
+              <span id="runtimeStatus" class="status-pill">未运行</span>
+            </div>
+            <div class="panel-body">
+              <div id="pipeline" class="pipeline"></div>
+            </div>
+          </section>
+
+          <section id="logsPanel" class="runtime-card hidden">
+            <div class="runtime-header">
+              <h2 class="panel-title">运行日志</h2>
+              <span id="currentStage" class="status-pill">等待中</span>
+            </div>
+            <div class="panel-body">
+              <div id="logs" class="logs">等待生成任务启动...</div>
+            </div>
+          </section>
+
+          <section id="failurePanel" class="result-panel hidden">
+            <div class="panel-body">
+              <div class="failure-panel">本次报告生成未完成，请查看失败阶段并稍后重试。</div>
+            </div>
+          </section>
+
+          <section id="historyPanel" class="result-panel hidden">
+            <div class="runtime-header">
+              <h2 class="panel-title">历史报告</h2>
+            </div>
+            <div class="panel-body">
+              <div id="historyList" class="scope-grid"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const stageLabels = {
+      block_1_1: "1.1 整体表",
+      block_1_2: "1.2 分平台表",
+      insight_1_input: "本品洞察输入",
+      insight_1_text: "本品洞察文案",
+      insight_2_input: "竞品对标输入",
+      insight_2_text: "竞品对标文案",
+      insight_3_input: "竞品动态输入",
+      insight_3_text: "竞品动态文案",
+      key_insights: "重点洞察合并",
+      report_preview: "报告拼装"
+    };
+    const stageOrder = Object.keys(stageLabels);
+    const statusText = {pending: "未开始", running: "生成中", success: "已完成", failed: "失败", skipped: "已跳过", warning: "警告"};
+    const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
+    let savedQueryConfigFile = null;
+    let savedConfigHash = null;
+    let configSaved = false;
+    let currentRunId = null;
+    let currentReport = null;
+    let hasExistingReport = false;
+    let pollTimer = null;
+    let currentUser = null;
+    let historyReports = [];
+    let rangeStart = "2025-01-01";
+    let rangeEnd = "2025-01-07";
+    let pendingStart = null;
+    let pendingEnd = null;
+    let isSelectingRange = false;
+    let visibleMonth = new Date(2025, 0, 1);
+    const supportedCompetitors = ["美的", "海尔", "TCL"];
+    let selectedCompetitors = [...supportedCompetitors];
+    let draftCompetitors = [...supportedCompetitors];
+
+    function updateCompetitorSummary() {
+      const summary = document.getElementById("competitorSummary");
+      summary.innerHTML = "";
+      const count = document.createElement("span");
+      count.className = "count-chip";
+      count.textContent = `已选 ${selectedCompetitors.length}`;
+      summary.appendChild(count);
+      if (!selectedCompetitors.length) {
+        const empty = document.createElement("span");
+        empty.className = "count-chip";
+        empty.textContent = "请选择对标品牌";
+        summary.appendChild(empty);
+        return;
+      }
+      selectedCompetitors.forEach(competitor => {
+        const chip = document.createElement("span");
+        chip.className = "choice-chip";
+        chip.textContent = competitor;
+        summary.appendChild(chip);
+      });
+    }
+
+    function parseDateLocal(dateStr) {
+      const [y, m, d] = dateStr.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function formatDateLocal(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function addYearsLocal(dateStr, years) {
+      const date = parseDateLocal(dateStr);
+      date.setFullYear(date.getFullYear() + years);
+      return formatDateLocal(date);
+    }
+
+    function monthLabel(date) {
+      return `${date.getFullYear()}年${date.getMonth() + 1}月`;
+    }
+
+    function addMonths(date, count) {
+      return new Date(date.getFullYear(), date.getMonth() + count, 1);
+    }
+
+    function currentPeriods() {
+      return {start: rangeStart, end: rangeEnd, compareStart: addYearsLocal(rangeStart, -1), compareEnd: addYearsLocal(rangeEnd, -1)};
+    }
+
+    function updatePeriodDisplay() {
+      const period = currentPeriods();
+      document.getElementById("rangeStartText").textContent = period.start;
+      document.getElementById("rangeEndText").textContent = period.end;
+      document.getElementById("comparePeriodText").textContent = `${period.compareStart} - ${period.compareEnd}`;
+    }
+
+    function validatePeriod() {
+      if (!rangeStart || !rangeEnd) return "请选择监测周期。";
+      if (rangeEnd < rangeStart) return "结束日期不能早于开始日期。";
+      return "";
+    }
+
+    function isSameDate(a, b) {
+      return a === b;
+    }
+
+    function isBetween(date, start, end) {
+      return start && end && date > start && date < end;
+    }
+
+    function renderCalendar() {
+      const grid = document.getElementById("calendarGrid");
+      grid.innerHTML = "";
+      document.getElementById("leftMonthTitle").textContent = monthLabel(visibleMonth);
+      document.getElementById("rightMonthTitle").textContent = monthLabel(addMonths(visibleMonth, 1));
+      [visibleMonth, addMonths(visibleMonth, 1)].forEach(monthDate => {
+        const month = document.createElement("div");
+        month.className = "calendar-month";
+
+        const weekdayRow = document.createElement("div");
+        weekdayRow.className = "calendar-weekdays";
+        weekdays.forEach(day => {
+          const item = document.createElement("div");
+          item.className = "calendar-weekday";
+          item.textContent = day;
+          weekdayRow.appendChild(item);
+        });
+        month.appendChild(weekdayRow);
+
+        const days = document.createElement("div");
+        days.className = "calendar-days";
+        const first = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+        const startOffset = (first.getDay() + 6) % 7;
+        const firstCell = new Date(first);
+        firstCell.setDate(first.getDate() - startOffset);
+        for (let i = 0; i < 42; i++) {
+          const cellDate = new Date(firstCell);
+          cellDate.setDate(firstCell.getDate() + i);
+          const value = formatDateLocal(cellDate);
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "calendar-day";
+          button.textContent = cellDate.getDate();
+          button.dataset.date = value;
+          if (cellDate.getMonth() !== monthDate.getMonth()) button.classList.add("muted");
+          const activeStart = isSelectingRange ? pendingStart : rangeStart;
+          const activeEnd = isSelectingRange ? pendingEnd : rangeEnd;
+          if (isBetween(value, activeStart, activeEnd)) button.classList.add("in-range");
+          if (isSameDate(value, activeStart) || isSameDate(value, activeEnd)) button.classList.add("range-edge");
+          if (value === formatDateLocal(new Date())) button.classList.add("today");
+          days.appendChild(button);
+        }
+        month.appendChild(days);
+        grid.appendChild(month);
+      });
+    }
+
+    function openDatePicker() {
+      visibleMonth = new Date(parseDateLocal(rangeStart).getFullYear(), parseDateLocal(rangeStart).getMonth(), 1);
+      pendingStart = null;
+      pendingEnd = null;
+      isSelectingRange = false;
+      const trigger = document.getElementById("dateRangeTrigger");
+      const popover = document.getElementById("dateRangePopover");
+      popover.classList.remove("hidden");
+      popover.style.visibility = "hidden";
+      const rect = trigger.getBoundingClientRect();
+      const width = Math.min(760, window.innerWidth - 48);
+      popover.style.width = `${width}px`;
+      popover.style.left = `${Math.max(24, Math.min(rect.left, window.innerWidth - width - 24))}px`;
+      popover.style.top = `${rect.bottom + 8}px`;
+      popover.style.visibility = "visible";
+      trigger.setAttribute("aria-expanded", "true");
+      renderCalendar();
+    }
+
+    function closeDatePicker() {
+      document.getElementById("dateRangePopover").classList.add("hidden");
+      document.getElementById("dateRangeTrigger").setAttribute("aria-expanded", "false");
+      pendingStart = null;
+      pendingEnd = null;
+      isSelectingRange = false;
+    }
+
+    function selectRangeDate(value) {
+      if (!isSelectingRange || !pendingStart) {
+        pendingStart = value;
+        pendingEnd = null;
+        isSelectingRange = true;
+        renderCalendar();
+        return;
+      }
+      pendingEnd = value;
+      rangeStart = pendingStart <= pendingEnd ? pendingStart : pendingEnd;
+      rangeEnd = pendingStart <= pendingEnd ? pendingEnd : pendingStart;
+      pendingStart = null;
+      pendingEnd = null;
+      isSelectingRange = false;
+      updatePeriodDisplay();
+      closeDatePicker();
+      markDirty();
+    }
+
+    function syncCompetitorDraft() {
+      document.querySelectorAll(".competitor-option").forEach(input => {
+        input.checked = draftCompetitors.includes(input.value);
+      });
+      document.getElementById("competitorAll").checked = draftCompetitors.length === supportedCompetitors.length;
+    }
+
+    function openCompetitorPicker() {
+      draftCompetitors = [...selectedCompetitors];
+      syncCompetitorDraft();
+      document.getElementById("competitorPopover").classList.remove("hidden");
+      document.getElementById("competitorTrigger").setAttribute("aria-expanded", "true");
+    }
+
+    function closeCompetitorPicker() {
+      document.getElementById("competitorPopover").classList.add("hidden");
+      document.getElementById("competitorTrigger").setAttribute("aria-expanded", "false");
+    }
+
+    function setDraftCompetitors(values) {
+      draftCompetitors = supportedCompetitors.filter(item => values.includes(item));
+      syncCompetitorDraft();
+    }
+
+    function commitCompetitors() {
+      selectedCompetitors = [...draftCompetitors];
+      updateCompetitorSummary();
+      closeCompetitorPicker();
+      markDirty();
+    }
+
+    function hideFailurePanel() {
+      document.getElementById("failurePanel").classList.add("hidden");
+    }
+
+    function hideReportCard() {
+      currentReport = null;
+      hasExistingReport = false;
+    }
+
+    function clearResultPanels() {
+      hideReportCard();
+      hideFailurePanel();
+    }
+
+    function setMessage(text, isError = false) {
+      const box = document.getElementById("errorBox");
+      if (isError) {
+        box.textContent = text;
+        box.classList.remove("hidden");
+      } else {
+        box.textContent = "";
+        box.classList.add("hidden");
+        document.getElementById("configMessage").textContent = text;
+      }
+    }
+
+    function showLogin() {
+      currentUser = null;
+      document.getElementById("loginView").classList.remove("hidden");
+      document.getElementById("appView").classList.add("hidden");
+    }
+
+    function showApp(user) {
+      currentUser = user;
+      document.getElementById("currentAccount").textContent = `当前账号：${user.username}`;
+      document.getElementById("loginView").classList.add("hidden");
+      document.getElementById("appView").classList.remove("hidden");
+    }
+
+    async function fetchJson(url, options = {}) {
+      const response = await fetch(url, options);
+      if (response.status === 401) {
+        showLogin();
+        throw new Error("未登录或登录已过期");
+      }
+      return response;
+    }
+
+    function markDirty() {
+      configSaved = false;
+      savedQueryConfigFile = null;
+      savedConfigHash = null;
+      hasExistingReport = false;
+      document.getElementById("generateBtn").disabled = true;
+      document.getElementById("generateBtn").textContent = "生成报告";
+      document.getElementById("configStatus").textContent = "未保存";
+      document.getElementById("configStatus").className = "status-pill";
+      clearResultPanels();
+      updatePeriodDisplay();
+      setMessage("配置已修改，请先点击“确定配置”。");
+    }
+
+    function payloadFromForm() {
+      const period = currentPeriods();
+      return {
+        template: "品牌监测周报",
+        brand: "海信",
+        competitors: [...selectedCompetitors],
+        start_date: period.start,
+        end_date: period.end,
+        compare_start_date: period.compareStart,
+        compare_end_date: period.compareEnd,
+        keywords_raw: document.getElementById("keywordsRaw").value.trim(),
+        filter_words_raw: document.getElementById("filterWordsRaw").value.trim()
+      };
+    }
+
+    function buildPipeline() {
+      const pipeline = document.getElementById("pipeline");
+      pipeline.innerHTML = "";
+      stageOrder.forEach((stage, index) => {
+        const card = document.createElement("div");
+        card.className = "stage-card";
+        card.dataset.stage = stage;
+        card.innerHTML = `<div class="stage-index">${index + 1}</div><p class="stage-name">${stageLabels[stage]}</p><p class="stage-desc">未开始</p>`;
+        pipeline.appendChild(card);
+      });
+      const runtimeStatus = document.getElementById("runtimeStatus");
+      runtimeStatus.textContent = "未运行";
+      runtimeStatus.className = "status-pill";
+    }
+
+    function setStageStatus(stage, status) {
+      const card = document.querySelector(`.stage-card[data-stage="${stage}"]`);
+      if (!card) return;
+      card.classList.remove("pending", "running", "success", "failed", "skipped", "warning");
+      card.classList.add(status || "pending");
+      card.querySelector(".stage-desc").textContent = statusText[status] || "未开始";
+      const index = card.querySelector(".stage-index");
+      if (status === "success") index.textContent = "✓";
+      else if (status === "failed") index.textContent = "!";
+      else index.textContent = stageOrder.indexOf(stage) + 1;
+    }
+
+    function renderReportCard(report, mode = "ready") {
+      currentReport = report;
+      hasExistingReport = Boolean(report);
+      if (!report) return hideReportCard();
+      hideFailurePanel();
+      document.getElementById("generateBtn").disabled = true;
+      document.getElementById("generateBtn").textContent = "已有报告";
+    }
+
+    function reportCardMarkup(report, prefix = "") {
+      const period = report.period || {};
+      const created = report.created_at ? report.created_at.replace("T", " ") : "-";
+      return `
+        <div class="report-card" data-report-id="${report.report_id}" data-prefix="${prefix}">
+          <div>
+            <h3 class="report-title">${report.title || "品牌监测周报"}</h3>
+            <div class="report-meta">
+              <span>${period.start_date || ""} 至 ${period.end_date || ""}</span>
+              <span>生成时间：${created}</span>
+            </div>
+          </div>
+          <div class="report-actions">
+            <button class="secondary" type="button" data-action="history-preview">预览</button>
+            <a class="link-button primary" href="${report.download_url}" target="_blank">下载 HTML</a>
+            <button class="danger-button" type="button" data-action="history-delete">删除</button>
+            <button class="secondary" type="button" data-action="history-regenerate">删除并重新生成</button>
+          </div>
+        </div>`;
+    }
+
+    function renderHistoryReports(reports) {
+      historyReports = reports || [];
+      const panel = document.getElementById("historyPanel");
+      const list = document.getElementById("historyList");
+      if (!historyReports.length) {
+        list.innerHTML = `<div class="empty-state">暂无历史报告</div>`;
+        panel.classList.remove("hidden");
+        return;
+      }
+      list.innerHTML = historyReports.map(report => reportCardMarkup(report, "history")).join("");
+      panel.classList.remove("hidden");
+    }
+
+    async function loadReports() {
+      const response = await fetchJson("/api/reports");
+      const data = await response.json();
+      if (data.success) renderHistoryReports(data.reports || []);
+    }
+
+    async function deleteCurrentReport() {
+      if (!currentReport) return true;
+      if (!window.confirm("确定删除这份报告吗？删除后可重新生成。")) return false;
+      const response = await fetchJson(`/api/reports/${currentReport.report_id}`, {method: "DELETE"});
+      if (!response.ok) {
+        setMessage("删除报告失败。", true);
+        return false;
+      }
+      clearResultPanels();
+      hasExistingReport = false;
+      document.getElementById("generateBtn").disabled = false;
+      document.getElementById("generateBtn").textContent = "生成报告";
+      setMessage("已有报告已删除，可以重新生成。");
+      await loadReports();
+      return true;
+    }
+
+    async function deleteAndRun() {
+      if (!currentReport) return runReport();
+      const confirmed = window.confirm("当前配置下已有报告。重新生成会先删除旧报告，再生成新报告。是否继续？");
+      if (!confirmed) return;
+      const reportId = currentReport.report_id;
+      const response = await fetchJson(`/api/reports/${reportId}`, {method: "DELETE"});
+      if (!response.ok) {
+        setMessage("删除报告失败。", true);
+        return;
+      }
+      currentReport = null;
+      hasExistingReport = false;
+      clearResultPanels();
+      document.getElementById("generateBtn").disabled = false;
+      document.getElementById("generateBtn").textContent = "生成报告";
+      await loadReports();
+      await runReport();
+    }
+
+    function renderStatus(status) {
+      const stageMap = Object.fromEntries((status.stages || []).map(item => [item.stage, item.status || "pending"]));
+      stageOrder.forEach(stage => setStageStatus(stage, stageMap[stage] || "pending"));
+      const runtimeStatus = document.getElementById("runtimeStatus");
+      runtimeStatus.textContent = status.status || "running";
+      runtimeStatus.className = "status-pill " + (status.status === "running" ? "running" : (status.status === "failed" || status.status === "partial_success") ? "failed" : "saved");
+      document.getElementById("currentStage").textContent = status.current_stage ? (stageLabels[status.current_stage] || status.current_stage) : "等待中";
+
+      if (status.status === "running") {
+        clearResultPanels();
+        return;
+      }
+
+      if (status.status) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        document.getElementById("generateBtn").disabled = false;
+        document.getElementById("generateBtn").textContent = "重新生成";
+      }
+
+      if (status.status === "success" && status.report) {
+        hideFailurePanel();
+        renderReportCard(status.report);
+        loadReports().catch(err => setMessage(String(err), true));
+        setMessage("报告已生成。");
+        return;
+      }
+
+      if (status.status === "success" && !status.report) {
+        hideReportCard();
+        document.getElementById("failurePanel").classList.remove("hidden");
+        setMessage("报告生成成功，但报告资产未返回，请稍后重试。", true);
+        return;
+      }
+
+      if (status.status === "failed" || status.status === "partial_success") {
+        hideReportCard();
+        document.getElementById("failurePanel").classList.remove("hidden");
+        const failed = (status.stages || []).find(item => item.status === "failed");
+        const stage = failed ? failed.stage : "pipeline";
+        setMessage(`生成失败：${stage} 阶段失败，请检查配置或稍后重试。`, true);
+      }
+    }
+
+    function applyConfigToForm(config) {
+      selectedCompetitors = (config.competitors || supportedCompetitors).filter(item => supportedCompetitors.includes(item));
+      if (!selectedCompetitors.length) selectedCompetitors = [...supportedCompetitors];
+      draftCompetitors = [...selectedCompetitors];
+      updateCompetitorSummary();
+      rangeStart = config.start_date || "2025-01-01";
+      rangeEnd = config.end_date || "2025-01-07";
+      document.getElementById("keywordsRaw").value = config.keywords_raw || "";
+      document.getElementById("filterWordsRaw").value = config.filter_words_raw || "";
+      updatePeriodDisplay();
+    }
+
+    async function loadCurrentConfig() {
+      const response = await fetchJson("/api/config/current");
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        setMessage(data.error || "读取当前配置失败。", true);
+        return;
+      }
+
+      if (!data.config_exists || !data.config) {
+        applyConfigToForm({competitors: supportedCompetitors, start_date: "2025-01-01", end_date: "2025-01-07"});
+        buildPipeline();
+        clearResultPanels();
+        configSaved = false;
+        savedQueryConfigFile = null;
+        savedConfigHash = null;
+        document.getElementById("configStatus").textContent = "未保存";
+        document.getElementById("configStatus").className = "status-pill";
+        document.getElementById("generateBtn").disabled = true;
+        document.getElementById("generateBtn").textContent = "生成报告";
+        setMessage("请先保存配置。");
+        await loadReports();
+        return;
+      }
+
+      applyConfigToForm(data.config);
+      buildPipeline();
+      savedQueryConfigFile = "configs/query_config.ui.json";
+      savedConfigHash = data.config.config_hash;
+      configSaved = true;
+      document.getElementById("configStatus").textContent = "已保存";
+      document.getElementById("configStatus").className = "status-pill saved";
+      if (data.existing_report) {
+        renderReportCard(data.existing_report, "existing");
+        hasExistingReport = true;
+        document.getElementById("generateBtn").disabled = true;
+        document.getElementById("generateBtn").textContent = "已有报告";
+        setMessage("当前配置下已有一份已完成报告。");
+      } else {
+        clearResultPanels();
+        hasExistingReport = false;
+        document.getElementById("generateBtn").disabled = false;
+        document.getElementById("generateBtn").textContent = "生成报告";
+        setMessage("配置已保存，可以生成报告。");
+      }
+      await loadReports();
+    }
+
+    async function loadDefaults() {
+      const response = await fetchJson("/api/config/default");
+      const data = await response.json();
+      applyConfigToForm(data);
+      markDirty();
+    }
+
+    async function saveConfig() {
+      const validationError = validatePeriod();
+      if (validationError) return setMessage(validationError, true);
+      const payload = payloadFromForm();
+      if (!payload.competitors.length) return setMessage("请至少填写一个对标品牌。", true);
+      const response = await fetchJson("/api/config/save", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) return setMessage(data.error || "配置保存失败。", true);
+      savedQueryConfigFile = data.query_config_file;
+      savedConfigHash = data.config_hash;
+      configSaved = true;
+      document.getElementById("generateBtn").disabled = false;
+      document.getElementById("configStatus").textContent = "已保存";
+      document.getElementById("configStatus").className = "status-pill saved";
+      if (data.existing_report) {
+        renderReportCard(data.existing_report, "existing");
+        hasExistingReport = true;
+        document.getElementById("generateBtn").disabled = true;
+        document.getElementById("generateBtn").textContent = "已有报告";
+        setMessage("当前配置下已有一份已完成报告。");
+      } else {
+        clearResultPanels();
+        hasExistingReport = false;
+        document.getElementById("generateBtn").disabled = false;
+        document.getElementById("generateBtn").textContent = "生成报告";
+        setMessage("配置已保存，可以生成报告。");
+      }
+      await loadReports();
+    }
+
+    async function runReport() {
+      if (!configSaved || !savedQueryConfigFile) return;
+      if (currentReport || hasExistingReport) {
+        setMessage("当前配置下已有一份已完成报告。如需重新生成，请先点击报告卡片中的“删除并重新生成”。");
+        return;
+      }
+      currentRunId = null;
+      clearResultPanels();
+      buildPipeline();
+      document.getElementById("generateBtn").disabled = true;
+      document.getElementById("generateBtn").textContent = "生成中...";
+      const runtimeStatus = document.getElementById("runtimeStatus");
+      runtimeStatus.textContent = "running";
+      runtimeStatus.className = "status-pill running";
+      const response = await fetchJson("/api/report/run", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({query_config_file: savedQueryConfigFile})
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        if (data.existing_report) {
+          renderReportCard(data.existing_report, "existing");
+          await loadReports();
+        }
+        document.getElementById("generateBtn").disabled = false;
+        document.getElementById("generateBtn").textContent = "生成报告";
+        document.getElementById("failurePanel").classList.remove("hidden");
+        return setMessage(data.error || "报告生成启动失败。", true);
+      }
+      currentRunId = data.run_id;
+      setMessage("报告生成已启动。");
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(pollStatus, 1200);
+      pollStatus();
+    }
+
+    async function pollStatus() {
+      if (!currentRunId) return;
+      const response = await fetchJson(`/api/report/status/${currentRunId}`);
+      if (!response.ok) return setMessage("运行状态查询失败。", true);
+      const statusData = await response.json();
+      console.log("poll status", statusData);
+      renderStatus(statusData);
+    }
+
+    async function initAuth() {
+      const response = await fetch("/api/auth/me");
+      const data = await response.json();
+      if (!data.authenticated) {
+        showLogin();
+        return;
+      }
+      showApp(data.user);
+      await loadCurrentConfig();
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          username: document.getElementById("loginUsername").value.trim(),
+          password: document.getElementById("loginPassword").value
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        const error = document.getElementById("loginError");
+        error.textContent = data.error || "登录失败";
+        error.classList.remove("hidden");
+        return;
+      }
+      document.getElementById("loginError").classList.add("hidden");
+      showApp(data.user);
+      await loadCurrentConfig();
+    }
+
+    async function handleLogout() {
+      await fetch("/api/auth/logout", {method: "POST"});
+      currentReport = null;
+      hasExistingReport = false;
+      historyReports = [];
+      configSaved = false;
+      savedQueryConfigFile = null;
+      savedConfigHash = null;
+      showLogin();
+    }
+
+    document.getElementById("dateRangeTrigger").addEventListener("click", event => {
+      event.stopPropagation();
+      const popover = document.getElementById("dateRangePopover");
+      if (popover.classList.contains("hidden")) openDatePicker();
+      else closeDatePicker();
+    });
+    document.getElementById("dateRangePopover").addEventListener("click", event => {
+      event.stopPropagation();
+    });
+    document.getElementById("prevMonthBtn").addEventListener("click", event => {
+      event.stopPropagation();
+      visibleMonth = addMonths(visibleMonth, -1);
+      renderCalendar();
+    });
+    document.getElementById("nextMonthBtn").addEventListener("click", event => {
+      event.stopPropagation();
+      visibleMonth = addMonths(visibleMonth, 1);
+      renderCalendar();
+    });
+    document.getElementById("calendarGrid").addEventListener("click", event => {
+      event.stopPropagation();
+      const button = event.target.closest(".calendar-day");
+      if (button) selectRangeDate(button.dataset.date);
+    });
+    document.addEventListener("click", event => {
+      closeDatePicker();
+      closeCompetitorPicker();
+    });
+    document.getElementById("competitorTrigger").addEventListener("click", event => {
+      event.stopPropagation();
+      const popover = document.getElementById("competitorPopover");
+      if (popover.classList.contains("hidden")) openCompetitorPicker();
+      else closeCompetitorPicker();
+    });
+    document.getElementById("competitorPopover").addEventListener("click", event => {
+      event.stopPropagation();
+    });
+    document.getElementById("competitorAll").addEventListener("change", event => {
+      setDraftCompetitors(event.target.checked ? supportedCompetitors : []);
+    });
+    document.querySelectorAll(".competitor-option").forEach(input => {
+      input.addEventListener("change", () => {
+        const values = Array.from(document.querySelectorAll(".competitor-option"))
+          .filter(item => item.checked)
+          .map(item => item.value);
+        setDraftCompetitors(values);
+      });
+    });
+    document.getElementById("competitorCancel").addEventListener("click", closeCompetitorPicker);
+    document.getElementById("competitorClear").addEventListener("click", () => setDraftCompetitors([]));
+    document.getElementById("competitorConfirm").addEventListener("click", commitCompetitors);
+    document.getElementById("brandSelect").addEventListener("click", () => {
+      setMessage("本品品牌当前仅支持：海信。");
+    });
+    document.getElementById("historyList").addEventListener("click", async event => {
+      const action = event.target.dataset.action;
+      const card = event.target.closest(".report-card");
+      if (!action || !card) return;
+      const report = historyReports.find(item => item.report_id === card.dataset.reportId);
+      if (!report) return;
+      if (action === "history-preview") window.open(report.preview_url, "_blank");
+      if (action === "history-delete") {
+        if (!window.confirm("确定删除这份报告吗？删除后可重新生成。")) return;
+        const response = await fetchJson(`/api/reports/${report.report_id}`, {method: "DELETE"});
+        if (!response.ok) return setMessage("删除报告失败。", true);
+        if (currentReport && currentReport.report_id === report.report_id) {
+          clearResultPanels();
+          hasExistingReport = false;
+          document.getElementById("generateBtn").disabled = !configSaved;
+          document.getElementById("generateBtn").textContent = "生成报告";
+        }
+        await loadReports();
+        setMessage("报告已删除。");
+      }
+      if (action === "history-regenerate") {
+        if (report.config_hash !== savedConfigHash) {
+          setMessage("请先恢复或保存该报告对应配置后，再删除并重新生成。", true);
+          return;
+        }
+        currentReport = report;
+        hasExistingReport = true;
+        await deleteAndRun();
+      }
+    });
+    document.getElementById("saveConfigBtn").addEventListener("click", saveConfig);
+    document.getElementById("generateBtn").addEventListener("click", runReport);
+    document.getElementById("loginForm").addEventListener("submit", handleLogin);
+    document.getElementById("logoutBtn").addEventListener("click", handleLogout);
+    ["keywordsRaw", "filterWordsRaw"].forEach(id => {
+      document.getElementById(id).addEventListener("input", markDirty);
+      document.getElementById(id).addEventListener("change", markDirty);
+    });
+
+    buildPipeline();
+    updatePeriodDisplay();
+    initAuth().catch(err => setMessage(String(err), true));
+  </script>
+</body>
+</html>

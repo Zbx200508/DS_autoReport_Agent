@@ -1,0 +1,35 @@
+{
+  "brand": "海信",
+  "competitors": ["美的", "海尔", "TCL"],
+  "benchmark_brand": "美的",
+  "start_date": "2025-01-01",
+  "end_date": "2025-01-07",
+  "compare_start_date": "2024-01-01",
+  "compare_end_date": "2024-01-07",
+  "platforms": ["抖音", "小红书", "视频号", "B站", "知乎"],
+  "platform_mappings": {
+    "抖音": {
+      "data_sources": ["抖音app"],
+      "special_soe_metric": null
+    },
+    "小红书": {
+      "data_sources": ["小红书"],
+      "special_soe_metric": null
+    },
+    "视频号": {
+      "data_sources": ["视频"],
+      "special_soe_metric": "love_like"
+    },
+    "B站": {
+      "data_sources": ["视频"],
+      "special_soe_metric": null
+    },
+    "知乎": {
+      "data_sources": ["问答"],
+      "special_soe_metric": null
+    }
+  },
+  "data_sources": ["微博", "小红书", "抖音app"],
+  "keywords": ["海信", "海信+电视", "Vidda"],
+  "filter_words": ["京东+年货节", "抽奖", "广告"]
+}
