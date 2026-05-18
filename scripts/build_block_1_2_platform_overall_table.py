@@ -18,7 +18,13 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
+
 SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = SCRIPT_DIR.parent
+load_dotenv(ROOT_DIR / ".env")
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
@@ -30,6 +36,7 @@ from build_report_data_package import (
     load_headers,
     redact,
 )
+from brand_mapping import get_mcp_query_brand_for_config
 
 
 BLOCK_ID = "block_1_2_platform_overall_table"
@@ -38,6 +45,7 @@ BLOCKS_DIR = Path("outputs") / "blocks"
 JSON_OUTPUT = BLOCKS_DIR / f"{BLOCK_ID}.json"
 HTML_OUTPUT = BLOCKS_DIR / f"{BLOCK_ID}.html"
 DEFAULT_BENCHMARK_BRAND = "美的"
+EXTRA_PLATFORM_FIELD_CANDIDATES = ("platform", "platformName", "subDataSource", "sourceName", "mediaType", "channel", "site", "appName")
 
 
 def parse_args() -> argparse.Namespace:
@@ -65,15 +73,26 @@ def normalize_platform_mappings(raw_value: Any, platforms: list[str]) -> dict[st
         item = raw_value.get(platform)
         if not isinstance(item, dict):
             raise ValueError(f"query_config.platform_mappings.{platform} must be a JSON object")
-        data_sources = ensure_string_list(item.get("data_sources"), f"platform_mappings.{platform}.data_sources")
+        data_sources_raw = item.get("data_sources")
+        if data_sources_raw is None:
+            data_sources_raw = item.get("dataSource")
+        data_sources = ensure_string_list(data_sources_raw, f"platform_mappings.{platform}.data_sources")
         if not data_sources:
             raise ValueError(f"query_config.platform_mappings.{platform}.data_sources is required")
+        if platform == "微信视频号" and data_sources == ["微信"]:
+            raise ValueError("query_config.platform_mappings.微信视频号 must not use data_sources=['微信']; use ['微信视频号'] or a supported short-video platform parameter.")
         special_soe_metric = item.get("special_soe_metric")
         if special_soe_metric not in (None, "love_like"):
             raise ValueError(f"query_config.platform_mappings.{platform}.special_soe_metric must be null or love_like")
+        extra_params = {
+            key: item[key]
+            for key in EXTRA_PLATFORM_FIELD_CANDIDATES
+            if isinstance(item.get(key), str) and item.get(key).strip()
+        }
         mappings[platform] = {
             "data_sources": data_sources,
             "special_soe_metric": special_soe_metric,
+            "extra_params": extra_params,
         }
     return mappings
 
@@ -122,6 +141,9 @@ def normalize_query_config(raw_config: dict[str, Any], notes: list[str]) -> dict
         "platform_mappings": normalize_platform_mappings(raw_config.get("platform_mappings"), platforms),
         "keywords": ensure_string_list(raw_config.get("keywords"), "keywords"),
         "filter_words": ensure_string_list(raw_config.get("filter_words"), "filter_words"),
+        "mcp_brand": raw_config.get("mcp_brand"),
+        "brand_query_name": raw_config.get("brand_query_name"),
+        "mcp_brand_mapping": raw_config.get("mcp_brand_mapping"),
     }
 
 
@@ -160,8 +182,8 @@ def build_arg0(
     end_date: str,
 ) -> dict[str, Any]:
     mapping = query_config["platform_mappings"][platform]
-    return {
-        "analysisObject": {"brand": brand},
+    arg0 = {
+        "analysisObject": {"brand": get_mcp_query_brand_for_config(brand, query_config)},
         "startTimeStr": start_date,
         "endTimeStr": end_date,
         "dataSource": mapping["data_sources"],
@@ -169,6 +191,8 @@ def build_arg0(
         "filterWords": query_config["filter_words"],
         "statisticBy": "day",
     }
+    arg0.update(mapping.get("extra_params") or {})
+    return arg0
 
 
 def coerce_number(value: Any) -> float | None:
@@ -188,7 +212,7 @@ def extract_records(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         return [item for item in payload if isinstance(item, dict)]
     if isinstance(payload, dict):
-        for key in ("data", "list", "rows", "result", "trend"):
+        for key in ("data", "dataList", "list", "rows", "result", "trend"):
             value = payload.get(key)
             if isinstance(value, list):
                 return [item for item in value if isinstance(item, dict)]
@@ -342,7 +366,8 @@ def collect_platform_brand_metrics(
 def add_mapping_risk_warnings(query_config: dict[str, Any], warnings: list[dict[str, Any]]) -> None:
     source_to_platforms: dict[tuple[str, ...], list[str]] = {}
     for platform in query_config["platforms"]:
-        sources = tuple(query_config["platform_mappings"][platform]["data_sources"])
+        mapping = query_config["platform_mappings"][platform]
+        sources = tuple([*mapping["data_sources"], *[f"{key}={value}" for key, value in sorted((mapping.get("extra_params") or {}).items())]])
         source_to_platforms.setdefault(sources, []).append(platform)
 
     for sources, platforms in source_to_platforms.items():
@@ -378,33 +403,17 @@ def build_platform_row(
     benchmark_sov = safe_divide(benchmark_metrics.get("current_volume"), current_total_volume)
 
     if special_soe_metric == "love_like":
-        target_current_love_like = target_metrics.get("current_interaction")
-        target_compare_love_like = target_metrics.get("compare_interaction")
-        benchmark_current_love_like = benchmark_metrics.get("current_interaction")
-        soe = target_current_love_like
-        soe_yoy = safe_divide(
-            subtract(target_current_love_like, target_compare_love_like),
-            target_compare_love_like,
+        soe = None
+        soe_yoy = None
+        soe_vs_benchmark = None
+        soe_display_type = "love_like_unavailable"
+        warnings.append(
+            {
+                "platform": platform,
+                "metric": "soe",
+                "message": "MCP 当前未返回 private_like_cnt 聚合值，微信视频号 SOE 暂不使用普通互动量冒充爱心赞。",
+            }
         )
-        soe_vs_benchmark = safe_divide(target_current_love_like, benchmark_current_love_like)
-        soe_display_type = "love_like"
-        if target_compare_love_like == 0:
-            warnings.append(
-                {
-                    "platform": platform,
-                    "metric": "soe_yoy",
-                    "message": "视频号对比周期爱心赞为 0，SOE 同比输出 null。",
-                }
-            )
-        if benchmark_current_love_like == 0:
-            warnings.append(
-                {
-                    "platform": platform,
-                    "metric": "soe_vs_benchmark",
-                    "benchmark_brand": benchmark_brand,
-                    "message": "视频号控比品牌当前周期爱心赞为 0，SOE 控比MD输出 null。",
-                }
-            )
     else:
         target_soe = safe_divide(target_metrics.get("current_interaction"), current_total_interaction)
         compare_target_soe = safe_divide(target_metrics.get("compare_interaction"), compare_total_interaction)
@@ -463,12 +472,16 @@ def format_integer(value: float | None) -> str:
 
 
 def format_soe(row: dict[str, Any]) -> str:
+    if row["soe_display_type"] == "love_like_unavailable":
+        return '—<br><span class="sub">（MCP未返回爱心赞）</span>'
     if row["soe_display_type"] == "love_like":
         return f'{format_integer(row["soe"])}<br><span class="sub">（爱心赞）</span>'
     return format_percent(row["soe"])
 
 
 def format_soe_vs_benchmark(row: dict[str, Any]) -> str:
+    if row["soe_display_type"] == "love_like_unavailable":
+        return '—<br><span class="sub">（MCP未返回爱心赞）</span>'
     if row["soe_display_type"] == "love_like":
         return f'{format_integer_percent(row["soe_vs_benchmark"])}<br><span class="sub">（爱心赞）</span>'
     return format_integer_percent(row["soe_vs_benchmark"])

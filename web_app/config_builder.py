@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import json
 import hashlib
+from copy import deepcopy
 from datetime import date
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
+
+from brand_mapping import DATA_QUERY_VERSION, get_mcp_query_brand, mcp_brand_mapping_for
 
 
 DEFAULT_OUTPUT_PATH = Path("configs") / "query_config.ui.json"
@@ -19,7 +22,7 @@ SUPPORTED_COMPETITORS = {"美的", "海尔", "TCL"}
 DEFAULT_PLATFORM_MAPPINGS = {
     "抖音": {"data_sources": ["抖音app"], "special_soe_metric": None},
     "小红书": {"data_sources": ["小红书"], "special_soe_metric": None},
-    "微信视频号": {"data_sources": ["微信"], "special_soe_metric": "love_like"},
+    "微信视频号": {"data_sources": ["微信视频号"], "special_soe_metric": "love_like"},
     "B站": {"data_sources": ["视频"], "special_soe_metric": None},
     "知乎": {"data_sources": ["问答"], "special_soe_metric": None},
 }
@@ -132,9 +135,15 @@ def build_query_config(payload: UiConfigPayload) -> dict[str, Any]:
     filter_words = split_top_level_or(payload.filter_words_raw)
     benchmark_brand = competitors[0] if competitors else "美的"
     period = build_period(payload.start_date, payload.end_date)
+    configured_brands = [brand, *competitors]
 
     return {
         "brand": brand,
+        "brand_display_name": brand,
+        "mcp_brand": get_mcp_query_brand(brand),
+        "brand_query_name": get_mcp_query_brand(brand),
+        "mcp_brand_mapping": mcp_brand_mapping_for(configured_brands),
+        "data_query_version": DATA_QUERY_VERSION,
         "competitors": competitors,
         "benchmark_brand": benchmark_brand,
         "start_date": period["start_date"],
@@ -143,7 +152,7 @@ def build_query_config(payload: UiConfigPayload) -> dict[str, Any]:
         "compare_end_date": period["compare_end_date"],
         "data_sources": BLOCK_1_1_DATA_SOURCES,
         "platforms": DEFAULT_PLATFORMS,
-        "platform_mappings": DEFAULT_PLATFORM_MAPPINGS,
+        "platform_mappings": deepcopy(DEFAULT_PLATFORM_MAPPINGS),
         "keywords": keywords,
         "filter_words": filter_words,
         "keywords_raw": payload.keywords_raw,
@@ -160,10 +169,54 @@ def build_query_config(payload: UiConfigPayload) -> dict[str, Any]:
     }
 
 
+def add_brand_query_fields(config: dict[str, Any]) -> dict[str, Any]:
+    brand = str(config.get("brand") or "").strip()
+    competitors = clean_competitors([str(item) for item in config.get("competitors", [])])
+    configured_brands = [brand, *competitors]
+    config["brand_display_name"] = brand
+    config["mcp_brand"] = get_mcp_query_brand(brand)
+    config["brand_query_name"] = get_mcp_query_brand(brand)
+    config["mcp_brand_mapping"] = mcp_brand_mapping_for(configured_brands)
+    config["data_query_version"] = DATA_QUERY_VERSION
+    return config
+
+
+def upgrade_platform_mappings(config: dict[str, Any]) -> dict[str, Any]:
+    mappings = deepcopy(config.get("platform_mappings")) if isinstance(config.get("platform_mappings"), dict) else {}
+    for platform, default_mapping in DEFAULT_PLATFORM_MAPPINGS.items():
+        current = mappings.get(platform)
+        if not isinstance(current, dict):
+            mappings[platform] = deepcopy(default_mapping)
+            continue
+
+        if platform == "微信视频号":
+            current_sources = current.get("data_sources")
+            if current_sources is None:
+                current_sources = current.get("dataSource")
+            if current_sources == ["微信"] or current_sources == "微信":
+                current["data_sources"] = ["微信视频号"]
+                current.pop("dataSource", None)
+            elif "data_sources" not in current and "dataSource" in current:
+                current["data_sources"] = current.pop("dataSource")
+            current.setdefault("special_soe_metric", "love_like")
+        else:
+            current.setdefault("data_sources", deepcopy(default_mapping["data_sources"]))
+            current.setdefault("special_soe_metric", default_mapping["special_soe_metric"])
+        mappings[platform] = current
+
+    config["platform_mappings"] = mappings
+    config["platforms"] = list(DEFAULT_PLATFORMS)
+    return config
+
+
 def normalized_config_for_hash(config: dict[str, Any]) -> dict[str, Any]:
     competitors = sorted(str(item).strip() for item in config.get("competitors", []) if str(item).strip())
     return {
         "brand": str(config.get("brand", "")).strip(),
+        "mcp_brand": str(config.get("mcp_brand", "")).strip(),
+        "mcp_brand_mapping": config.get("mcp_brand_mapping", {}),
+        "data_query_version": str(config.get("data_query_version", "")).strip(),
+        "platform_mappings": config.get("platform_mappings", {}),
         "competitors": competitors,
         "start_date": config.get("start_date", ""),
         "end_date": config.get("end_date", ""),
@@ -178,6 +231,14 @@ def config_hash(config: dict[str, Any]) -> str:
     normalized = normalized_config_for_hash(config)
     payload = json.dumps(normalized, ensure_ascii=False, sort_keys=True)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def ensure_query_config_version(config: dict[str, Any]) -> dict[str, Any]:
+    upgraded = dict(config)
+    add_brand_query_fields(upgraded)
+    upgrade_platform_mappings(upgraded)
+    upgraded["config_hash"] = config_hash(upgraded)
+    return upgraded
 
 
 def save_query_config(payload: UiConfigPayload, output_path: Path = DEFAULT_OUTPUT_PATH) -> dict[str, Any]:

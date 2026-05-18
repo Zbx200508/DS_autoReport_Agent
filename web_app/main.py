@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hmac
 import os
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 import json
@@ -15,7 +17,7 @@ from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
 
 from .auth import normalize_owner_id
-from .config_builder import UiConfigPayload, default_ui_config, save_query_config
+from .config_builder import UiConfigPayload, default_ui_config, ensure_query_config_version, save_query_config
 from .pipeline_runner import ROOT_DIR, pipeline_runner
 from .report_registry import (
     OUTPUT_ROOT,
@@ -35,6 +37,10 @@ STATIC_DIR = ROOT_DIR / "web_app" / "static"
 INDEX_HTML = STATIC_DIR / "index.html"
 QUERY_CONFIG_UI = ROOT_DIR / "configs" / "query_config.ui.json"
 REPORT_PREVIEW = ROOT_DIR / "outputs" / "report_preview.html"
+TABLE_DATA_AUDIT_HTML = ROOT_DIR / "outputs" / "audit" / "table_data_audit.html"
+TABLE_DATA_AUDIT_CSV = ROOT_DIR / "outputs" / "audit" / "table_data_audit.csv"
+TABLE_MCP_AUDIT_HTML = ROOT_DIR / "outputs" / "audit" / "table_mcp_fetch_audit.html"
+TABLE_MCP_AUDIT_CSV = ROOT_DIR / "outputs" / "audit" / "table_mcp_fetch_audit.csv"
 
 
 class RunRequest(BaseModel):
@@ -118,6 +124,44 @@ def auth_error_response() -> JSONResponse:
     return JSONResponse({"success": False, "error": "未登录或登录已过期"}, status_code=401)
 
 
+def table_data_audit_error_response() -> JSONResponse:
+    return JSONResponse({"success": False, "error": "表格原数据核对页尚未生成，请先生成报告。"}, status_code=404)
+
+
+def table_data_audit_filename() -> str:
+    brand = "海信"
+    start_date = ""
+    end_date = ""
+    if QUERY_CONFIG_UI.exists():
+        try:
+            config = json.loads(QUERY_CONFIG_UI.read_text(encoding="utf-8"))
+            brand = str(config.get("brand") or brand).strip() or brand
+            start_date = str(config.get("start_date") or "")
+            end_date = str(config.get("end_date") or "")
+        except Exception:
+            pass
+    return f"{brand}品牌监测周报_表格原数据核对_{start_date}_{end_date}.csv"
+
+
+def table_mcp_audit_error_response() -> JSONResponse:
+    return JSONResponse({"success": False, "error": "表格 MCP 取数核对尚未生成，请先点击表格取数核对。"}, status_code=404)
+
+
+def table_mcp_audit_filename() -> str:
+    brand = "海信"
+    start_date = ""
+    end_date = ""
+    if QUERY_CONFIG_UI.exists():
+        try:
+            config = json.loads(QUERY_CONFIG_UI.read_text(encoding="utf-8"))
+            brand = str(config.get("brand") or brand).strip() or brand
+            start_date = str(config.get("start_date") or "")
+            end_date = str(config.get("end_date") or "")
+        except Exception:
+            pass
+    return f"{brand}品牌监测周报_表格MCP取数核对_{start_date}_{end_date}.csv"
+
+
 @app.get("/", response_class=HTMLResponse)
 def index() -> FileResponse:
     if not INDEX_HTML.exists():
@@ -194,6 +238,10 @@ def get_current_config(request: Request) -> dict[str, Any]:
 
     try:
         config = json.loads(QUERY_CONFIG_UI.read_text(encoding="utf-8"))
+        upgraded_config = ensure_query_config_version(config)
+        if upgraded_config != config:
+            QUERY_CONFIG_UI.write_text(json.dumps(upgraded_config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            config = upgraded_config
     except Exception as exc:
         return {
             "success": False,
@@ -242,6 +290,8 @@ def run_report(http_request: Request, request: RunRequest) -> dict[str, Any]:
         query_config_path = ROOT_DIR / query_config_path
     try:
         query_config = json.loads(query_config_path.read_text(encoding="utf-8"))
+        query_config = ensure_query_config_version(query_config)
+        query_config_path.write_text(json.dumps(query_config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     except Exception as exc:
         return {"success": False, "error": f"读取配置失败：{exc}"}
 
@@ -344,4 +394,89 @@ def report_download(request: Request) -> FileResponse:
         REPORT_PREVIEW,
         media_type="text/html",
         filename=filename,
+    )
+
+
+@app.get("/api/audit/table-data/preview")
+def table_data_audit_preview(request: Request):
+    require_user(request)
+    if not TABLE_DATA_AUDIT_HTML.exists():
+        return table_data_audit_error_response()
+    return FileResponse(TABLE_DATA_AUDIT_HTML, media_type="text/html; charset=utf-8")
+
+
+@app.get("/api/audit/table-data/download")
+def table_data_audit_download(request: Request):
+    require_user(request)
+    if not TABLE_DATA_AUDIT_CSV.exists():
+        return table_data_audit_error_response()
+    return FileResponse(
+        TABLE_DATA_AUDIT_CSV,
+        media_type="text/csv; charset=utf-8",
+        filename=table_data_audit_filename(),
+    )
+
+
+@app.post("/api/audit/table-mcp/run")
+def table_mcp_audit_run(request: Request) -> dict[str, Any]:
+    require_user(request)
+    if not QUERY_CONFIG_UI.exists():
+        return {"success": False, "error": "当前配置尚未保存，请先点击“确定配置”保存当前配置。"}
+    try:
+        query_config = json.loads(QUERY_CONFIG_UI.read_text(encoding="utf-8"))
+        upgraded_config = ensure_query_config_version(query_config)
+        if upgraded_config != query_config:
+            QUERY_CONFIG_UI.write_text(json.dumps(upgraded_config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    except Exception as exc:
+        return {"success": False, "error": f"读取当前配置失败：{exc}"}
+
+    missing_env = [name for name in ("MCP_SERVER_URL", "MCP_AUTHORIZATION") if not os.getenv(name)]
+    if missing_env:
+        return {"success": False, "error": "缺少环境变量 " + "、".join(missing_env)}
+
+    command = [
+        sys.executable,
+        str(ROOT_DIR / "scripts" / "build_table_mcp_fetch_audit.py"),
+        "--query-config-file",
+        str(QUERY_CONFIG_UI),
+    ]
+    completed = subprocess.run(
+        command,
+        cwd=str(ROOT_DIR),
+        env=os.environ.copy(),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    if completed.returncode != 0:
+        error = (completed.stderr or completed.stdout or "表格 MCP 取数核对执行失败").strip()
+        return {"success": False, "error": error[-1200:]}
+
+    return {
+        "success": True,
+        "message": "表格 MCP 取数核对已完成",
+        "preview_url": "/api/audit/table-mcp/preview",
+        "download_url": "/api/audit/table-mcp/download",
+    }
+
+
+@app.get("/api/audit/table-mcp/preview")
+def table_mcp_audit_preview(request: Request):
+    require_user(request)
+    if not TABLE_MCP_AUDIT_HTML.exists():
+        return table_mcp_audit_error_response()
+    return FileResponse(TABLE_MCP_AUDIT_HTML, media_type="text/html; charset=utf-8")
+
+
+@app.get("/api/audit/table-mcp/download")
+def table_mcp_audit_download(request: Request):
+    require_user(request)
+    if not TABLE_MCP_AUDIT_CSV.exists():
+        return table_mcp_audit_error_response()
+    return FileResponse(
+        TABLE_MCP_AUDIT_CSV,
+        media_type="text/csv; charset=utf-8",
+        filename=table_mcp_audit_filename(),
     )

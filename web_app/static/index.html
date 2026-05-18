@@ -820,6 +820,15 @@
               <button id="saveConfigBtn" class="secondary">确定配置</button>
               <button id="generateBtn" class="primary" disabled>生成报告</button>
             </div>
+            <div class="section">
+              <p class="section-title">数据核对</p>
+              <div class="hint">只调用表格 1 / 表格 2 的 MCP 取数接口，用于核对关键词、过滤词和返回数据。不调用 LLM，不生成报告。</div>
+              <div class="preview-actions" style="margin-top: 12px;">
+                <button id="tableMcpAuditBtn" class="secondary" type="button">表格取数核对</button>
+                <button id="tableMcpPreviewBtn" class="secondary hidden" type="button">查看表格取数核对</button>
+                <button id="tableMcpDownloadBtn" class="secondary hidden" type="button">下载 CSV</button>
+              </div>
+            </div>
             <div id="configMessage" class="hint">请先保存配置。</div>
             <div id="errorBox" class="error-text hidden"></div>
           </div>
@@ -1223,6 +1232,8 @@
             </div>
           </div>
           <div class="report-actions">
+            <button class="secondary" type="button" data-action="audit-preview">查看表格原数据</button>
+            <button class="secondary" type="button" data-action="audit-download">下载表格原数据 CSV</button>
             <button class="secondary" type="button" data-action="history-preview">预览</button>
             <a class="link-button primary" href="${report.download_url}" target="_blank">下载 HTML</a>
             <button class="danger-button" type="button" data-action="history-delete">删除</button>
@@ -1248,6 +1259,101 @@
       const response = await fetchJson("/api/reports");
       const data = await response.json();
       if (data.success) renderHistoryReports(data.reports || []);
+    }
+
+    function filenameFromDisposition(disposition) {
+      if (!disposition) return "table_data_audit.csv";
+      const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      if (utf8Match) return decodeURIComponent(utf8Match[1]);
+      const plainMatch = disposition.match(/filename="?([^";]+)"?/i);
+      return plainMatch ? plainMatch[1] : "table_data_audit.csv";
+    }
+
+    async function previewTableDataAudit() {
+      const response = await fetchJson("/api/audit/table-data/preview");
+      const contentType = response.headers.get("content-type") || "";
+      if (!response.ok || contentType.includes("application/json")) {
+        const data = await response.json().catch(() => ({}));
+        setMessage(data.error || "表格原数据核对页尚未生成，请先生成报告。", true);
+        return;
+      }
+      window.open("/api/audit/table-data/preview", "_blank");
+    }
+
+    async function downloadTableDataAudit() {
+      const response = await fetchJson("/api/audit/table-data/download");
+      const contentType = response.headers.get("content-type") || "";
+      if (!response.ok || contentType.includes("application/json")) {
+        const data = await response.json().catch(() => ({}));
+        setMessage(data.error || "表格原数据核对页尚未生成，请先生成报告。", true);
+        return;
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filenameFromDisposition(response.headers.get("content-disposition"));
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function previewTableMcpAudit() {
+      const response = await fetchJson("/api/audit/table-mcp/preview");
+      const contentType = response.headers.get("content-type") || "";
+      if (!response.ok || contentType.includes("application/json")) {
+        const data = await response.json().catch(() => ({}));
+        setMessage(data.error || "表格 MCP 取数核对尚未生成，请先点击表格取数核对。", true);
+        return;
+      }
+      window.open("/api/audit/table-mcp/preview", "_blank");
+    }
+
+    async function downloadTableMcpAudit() {
+      const response = await fetchJson("/api/audit/table-mcp/download");
+      const contentType = response.headers.get("content-type") || "";
+      if (!response.ok || contentType.includes("application/json")) {
+        const data = await response.json().catch(() => ({}));
+        setMessage(data.error || "表格 MCP 取数核对尚未生成，请先点击表格取数核对。", true);
+        return;
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filenameFromDisposition(response.headers.get("content-disposition"));
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function runTableMcpAudit() {
+      if (!configSaved || !savedQueryConfigFile) {
+        setMessage("请先点击“确定配置”保存当前配置，再进行表格取数核对。", true);
+        return;
+      }
+      const button = document.getElementById("tableMcpAuditBtn");
+      button.disabled = true;
+      button.textContent = "取数核对中...";
+      document.getElementById("tableMcpPreviewBtn").classList.add("hidden");
+      document.getElementById("tableMcpDownloadBtn").classList.add("hidden");
+      setMessage("正在调用 MCP 进行表格取数核对...");
+      try {
+        const response = await fetchJson("/api/audit/table-mcp/run", {method: "POST"});
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          setMessage(data.error || "表格 MCP 取数核对失败。", true);
+          return;
+        }
+        document.getElementById("tableMcpPreviewBtn").classList.remove("hidden");
+        document.getElementById("tableMcpDownloadBtn").classList.remove("hidden");
+        setMessage("表格取数核对已完成");
+      } finally {
+        button.disabled = false;
+        button.textContent = "表格取数核对";
+      }
     }
 
     async function deleteCurrentReport() {
@@ -1581,6 +1687,8 @@
       const report = historyReports.find(item => item.report_id === card.dataset.reportId);
       if (!report) return;
       if (action === "history-preview") window.open(report.preview_url, "_blank");
+      if (action === "audit-preview") await previewTableDataAudit();
+      if (action === "audit-download") await downloadTableDataAudit();
       if (action === "history-delete") {
         if (!window.confirm("确定删除这份报告吗？删除后可重新生成。")) return;
         const response = await fetchJson(`/api/reports/${report.report_id}`, {method: "DELETE"});
@@ -1606,6 +1714,9 @@
     });
     document.getElementById("saveConfigBtn").addEventListener("click", saveConfig);
     document.getElementById("generateBtn").addEventListener("click", runReport);
+    document.getElementById("tableMcpAuditBtn").addEventListener("click", runTableMcpAudit);
+    document.getElementById("tableMcpPreviewBtn").addEventListener("click", previewTableMcpAudit);
+    document.getElementById("tableMcpDownloadBtn").addEventListener("click", downloadTableMcpAudit);
     document.getElementById("loginForm").addEventListener("submit", handleLogin);
     document.getElementById("logoutBtn").addEventListener("click", handleLogout);
     ["keywordsRaw", "filterWordsRaw"].forEach(id => {

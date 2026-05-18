@@ -21,6 +21,18 @@ from typing import Any
 SUMMARY_PATH = Path("outputs") / "pipeline_run_summary.json"
 FINAL_REPORT_PATH = Path("outputs") / "report_preview.html"
 TAIL_LIMIT = 3000
+TABLE_DATA_AUDIT_STAGE = {
+    "stage": "table_data_audit",
+    "script": Path("scripts") / "build_table_data_audit.py",
+    "uses_query_config": True,
+    "requires_mcp": False,
+    "requires_llm": False,
+    "outputs": [
+        Path("outputs") / "audit" / "table_data_audit.html",
+        Path("outputs") / "audit" / "table_data_audit.csv",
+        Path("outputs") / "audit" / "table_data_audit.json",
+    ],
+}
 
 STAGES = [
     {
@@ -357,6 +369,22 @@ def run_stage(stage: dict[str, Any], args: argparse.Namespace, index: int, total
     }
 
 
+def run_post_report_audit(args: argparse.Namespace, warnings: list[dict[str, Any]]) -> None:
+    """Generate optional table-data audit assets after the main report succeeds."""
+    if not FINAL_REPORT_PATH.exists():
+        return
+
+    result = run_stage(TABLE_DATA_AUDIT_STAGE, args, len(STAGES) + 1, len(STAGES) + 1)
+    if result["status"] != "success":
+        warnings.append(
+            {
+                "stage": TABLE_DATA_AUDIT_STAGE["stage"],
+                "message": "table data audit assets were not generated",
+                "errors": result.get("errors", []),
+            }
+        )
+
+
 def pipeline_status(stage_results: list[dict[str, Any]]) -> str:
     failed = [stage for stage in stage_results if stage.get("status") == "failed"]
     if not failed:
@@ -469,6 +497,9 @@ def main() -> int:
 
     if args.open_report:
         open_report(FINAL_REPORT_PATH, warnings)
+
+    if stage_results and stage_results[-1].get("stage") == "report_preview" and stage_results[-1].get("status") == "success":
+        run_post_report_audit(args, warnings)
 
     summary = build_summary(args=args, stage_results=stage_results, warnings=warnings, errors=errors)
     write_summary(summary_path, summary)

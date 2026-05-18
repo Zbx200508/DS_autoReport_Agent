@@ -6,7 +6,7 @@
   "end_date": "2025-01-07",
   "compare_start_date": "2024-01-01",
   "compare_end_date": "2024-01-07",
-  "platforms": ["抖音", "小红书", "视频号", "B站", "知乎"],
+  "platforms": ["抖音", "小红书", "微信视频号", "B站", "知乎"],
   "platform_mappings": {
     "抖音": {
       "data_sources": ["抖音app"],
@@ -16,8 +16,8 @@
       "data_sources": ["小红书"],
       "special_soe_metric": null
     },
-    "视频号": {
-      "data_sources": ["视频"],
+    "微信视频号": {
+      "data_sources": ["微信视频号"],
       "special_soe_metric": "love_like"
     },
     "B站": {

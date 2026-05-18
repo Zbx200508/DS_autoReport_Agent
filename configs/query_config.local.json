@@ -17,7 +17,7 @@
       "special_soe_metric": null
     },
     "微信视频号": {
-      "data_sources": ["微信"],
+      "data_sources": ["微信视频号"],
       "special_soe_metric": "love_like"
     },
     "B站": {

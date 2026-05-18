@@ -1,15 +1,25 @@
 {
   "brand": "海信",
+  "brand_display_name": "海信",
+  "mcp_brand": "海信本系",
+  "brand_query_name": "海信本系",
+  "mcp_brand_mapping": {
+    "海信": "海信本系",
+    "美的": "美的",
+    "海尔": "海尔",
+    "TCL": "TCL"
+  },
+  "data_query_version": "hisense_mcp_brand_v3_wechat_video_source",
   "competitors": [
     "美的",
     "海尔",
     "TCL"
   ],
   "benchmark_brand": "美的",
-  "start_date": "2025-04-20",
-  "end_date": "2025-04-26",
-  "compare_start_date": "2024-04-20",
-  "compare_end_date": "2024-04-26",
+  "start_date": "2026-04-10",
+  "end_date": "2026-04-16",
+  "compare_start_date": "2025-04-10",
+  "compare_end_date": "2025-04-16",
   "data_sources": [
     "新闻",
     "微博",
@@ -42,7 +52,7 @@
     },
     "微信视频号": {
       "data_sources": [
-        "微信"
+        "微信视频号"
       ],
       "special_soe_metric": "love_like"
     },
@@ -88,5 +98,5 @@
       }
     }
   },
-  "config_hash": "77246a1fa577c1f2"
+  "config_hash": "84eb0f867c1a96e7"
 }

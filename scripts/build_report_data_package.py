@@ -33,6 +33,12 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from brand_mapping import get_mcp_query_brand_for_config
+
 
 OUTPUT_DIR = Path("outputs")
 REPORT_DATA_PACKAGE_OUTPUT = OUTPUT_DIR / "report_data_package.json"
@@ -385,7 +391,7 @@ def normalize_query_config(raw_config: dict[str, Any]) -> dict[str, Any]:
 
 def base_arg0(query_config: dict[str, Any], brand: str) -> dict[str, Any]:
     return {
-        "analysisObject": {"brand": brand},
+        "analysisObject": {"brand": get_mcp_query_brand_for_config(brand, query_config)},
         "startTimeStr": query_config["start_date"],
         "endTimeStr": query_config["end_date"],
         "dataSource": query_config["data_sources"],

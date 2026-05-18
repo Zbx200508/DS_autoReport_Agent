@@ -19,6 +19,9 @@ from pathlib import Path
 from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = SCRIPT_DIR.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
@@ -30,6 +33,7 @@ from build_report_data_package import (
     load_headers,
     redact,
 )
+from brand_mapping import get_mcp_query_brand_for_config
 
 
 BLOCK_ID = "block_1_1_brand_overall_table"
@@ -114,7 +118,7 @@ def load_query_config(args: argparse.Namespace, notes: list[str]) -> dict[str, A
 
 def build_arg0(query_config: dict[str, Any], brand: str, start_date: str, end_date: str) -> dict[str, Any]:
     return {
-        "analysisObject": {"brand": brand},
+        "analysisObject": {"brand": get_mcp_query_brand_for_config(brand, query_config)},
         "startTimeStr": start_date,
         "endTimeStr": end_date,
         "dataSource": query_config["data_sources"],
@@ -141,7 +145,7 @@ def extract_records(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         return [item for item in payload if isinstance(item, dict)]
     if isinstance(payload, dict):
-        for key in ("data", "list", "rows", "result", "trend"):
+        for key in ("data", "dataList", "list", "rows", "result", "trend"):
             value = payload.get(key)
             if isinstance(value, list):
                 return [item for item in value if isinstance(item, dict)]

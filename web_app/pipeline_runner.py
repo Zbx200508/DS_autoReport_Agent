@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from .config_builder import config_hash
+from .config_builder import ensure_query_config_version
 from .report_registry import register_completed_report
 
 
@@ -201,7 +201,8 @@ class PipelineRunner:
     def _load_run_config(self, query_config_file: str) -> dict[str, Any]:
         path = self._resolve_query_config(query_config_file)
         config = json.loads(path.read_text(encoding="utf-8"))
-        config.setdefault("config_hash", config_hash(config))
+        config = ensure_query_config_version(config)
+        path.write_text(json.dumps(config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         return config
 
     def _clear_report_links(self, run: dict[str, Any]) -> None:
