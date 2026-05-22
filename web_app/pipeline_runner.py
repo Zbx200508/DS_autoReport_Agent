@@ -24,6 +24,8 @@ FINAL_REPORT = ROOT_DIR / "outputs" / "report_preview.html"
 STAGE_NAMES = [
     "block_1_1",
     "block_1_2",
+    "category_control_table_task",
+    "category_control_table_5_task",
     "insight_1_input",
     "insight_1_text",
     "insight_2_input",

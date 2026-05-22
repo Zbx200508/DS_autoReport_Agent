@@ -26,3 +26,7 @@ data/
 Thumbs.db
 .vscode/
 .idea/
+
+#skill
+agent_skills_export/
+skills_spec_export/

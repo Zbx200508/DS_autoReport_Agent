@@ -9,7 +9,9 @@
     "海尔": "海尔",
     "TCL": "TCL"
   },
-  "data_query_version": "hisense_mcp_brand_v3_wechat_video_source",
+  "data_query_version": "hisense_mcp_brand_v7_bilibili_source",
+  "enable_category_control_table": true,
+  "enable_category_control_table_5": true,
   "competitors": [
     "美的",
     "海尔",
@@ -58,13 +60,13 @@
     },
     "B站": {
       "data_sources": [
-        "视频"
+        "哔哩哔哩"
       ],
       "special_soe_metric": null
     },
     "知乎": {
       "data_sources": [
-        "问答"
+        "知乎"
       ],
       "special_soe_metric": null
     }
@@ -98,5 +100,5 @@
       }
     }
   },
-  "config_hash": "84eb0f867c1a96e7"
+  "config_hash": "55c5aafdd1aa83bc"
 }

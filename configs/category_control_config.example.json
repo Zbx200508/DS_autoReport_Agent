@@ -1,0 +1,107 @@
+{
+  "brand_display_name": "海信",
+  "brand_query_name": "海信本系",
+  "start_date": "2026-05-10",
+  "end_date": "2026-05-16",
+  "compare_start_date": "2025-05-10",
+  "compare_end_date": "2025-05-16",
+  "keywords": [],
+  "filter_words": [],
+  "lines": [
+    {
+      "line_name": "海信电视控比竞品TCL电视",
+      "own": {
+        "display_name": "海信电视",
+        "query_name": "海信非激光电视",
+        "analysisObject": {
+          "brand": "海信非激光电视"
+        }
+      },
+      "competitor": {
+        "display_name": "TCL电视",
+        "query_name": "TCL电视",
+        "analysisObject": {
+          "brand": "TCL电视"
+        }
+      }
+    },
+    {
+      "line_name": "海信冰箱控比竞品美的冰箱",
+      "own": {
+        "display_name": "海信冰箱",
+        "query_name": "海信冰箱",
+        "analysisObject": {
+          "brand": "海信冰箱"
+        }
+      },
+      "competitor": {
+        "display_name": "美的冰箱",
+        "query_name": "美的冰箱",
+        "analysisObject": {
+          "brand": "美的冰箱"
+        }
+      }
+    },
+    {
+      "line_name": "海信空调控比竞品美的空调",
+      "own": {
+        "display_name": "海信空调",
+        "query_name": "海信非中央空调",
+        "analysisObject": {
+          "brand": "海信非中央空调"
+        }
+      },
+      "competitor": {
+        "display_name": "美的空调",
+        "query_name": "美的非中央空调",
+        "analysisObject": {
+          "brand": "美的非中央空调"
+        }
+      }
+    },
+    {
+      "line_name": "海信洗衣机控比竞品小天鹅洗衣机",
+      "own": {
+        "display_name": "海信洗衣机",
+        "query_name": "海信洗衣机类",
+        "analysisObject": {
+          "brand": "海信洗衣机类"
+        }
+      },
+      "competitor": {
+        "display_name": "小天鹅洗衣机",
+        "query_name": "小天鹅洗衣机",
+        "analysisObject": {
+          "brand": "小天鹅洗衣机"
+        }
+      }
+    }
+  ],
+  "platforms": [
+    {
+      "display_name": "小红书",
+      "dataSource": ["小红书"],
+      "platform_type": "normal"
+    },
+    {
+      "display_name": "抖音",
+      "dataSource": ["抖音app"],
+      "platform_type": "normal"
+    },
+    {
+      "display_name": "视频号",
+      "dataSource": ["微信视频号"],
+      "platform_type": "wechat_video"
+    },
+    {
+      "display_name": "B站",
+      "dataSource": ["哔哩哔哩"],
+      "platform_type": "normal"
+    },
+    {
+      "display_name": "知乎",
+      "dataSource": ["知乎"],
+      "platform_type": "normal"
+    }
+  ]
+}

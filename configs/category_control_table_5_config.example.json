@@ -1,0 +1,103 @@
+{
+  "title": "各品线重点媒介表现-2",
+  "block_id": "category_control_table_5",
+  "table_type": "brand_pool",
+  "start_date": "2026-05-10",
+  "end_date": "2026-05-16",
+  "compare_start_date": "2025-05-10",
+  "compare_end_date": "2025-05-16",
+  "keywords": [],
+  "filter_words": [],
+  "platforms": [
+    {
+      "display_name": "小红书",
+      "dataSource": ["小红书"],
+      "platform_type": "normal"
+    },
+    {
+      "display_name": "抖音",
+      "dataSource": ["抖音app"],
+      "platform_type": "normal"
+    },
+    {
+      "display_name": "视频号",
+      "dataSource": ["微信视频号"],
+      "platform_type": "wechat_video"
+    },
+    {
+      "display_name": "B站",
+      "dataSource": ["哔哩哔哩"],
+      "platform_type": "normal"
+    },
+    {
+      "display_name": "知乎",
+      "dataSource": ["知乎"],
+      "platform_type": "normal"
+    }
+  ],
+  "brands": [
+    {
+      "display_name": "海信电视",
+      "query_name": "海信非激光电视",
+      "analysisObject": {
+        "brand": "海信非激光电视"
+      }
+    },
+    {
+      "display_name": "海信激光电视",
+      "query_name": "海信激光电视",
+      "analysisObject": {
+        "brand": "海信激光电视"
+      }
+    },
+    {
+      "display_name": "Vidda",
+      "query_name": "vidda电视",
+      "analysisObject": {
+        "brand": "vidda电视"
+      }
+    },
+    {
+      "display_name": "东芝电视",
+      "query_name": "东芝电视",
+      "analysisObject": {
+        "brand": "东芝电视"
+      }
+    },
+    {
+      "display_name": "科龙空调",
+      "query_name": "科龙非中央空调",
+      "analysisObject": {
+        "brand": "科龙非中央空调"
+      }
+    },
+    {
+      "display_name": "海信洗衣机",
+      "query_name": "海信洗衣机类",
+      "analysisObject": {
+        "brand": "海信洗衣机类"
+      }
+    },
+    {
+      "display_name": "海信厨卫",
+      "query_name": "海信厨卫fake",
+      "analysisObject": {
+        "brand": "海信厨卫fake"
+      }
+    },
+    {
+      "display_name": "ASKO",
+      "query_name": "雅士高",
+      "analysisObject": {
+        "brand": "雅士高"
+      }
+    },
+    {
+      "display_name": "gerenje",
+      "query_name": "古洛尼",
+      "analysisObject": {
+        "brand": "古洛尼"
+      }
+    }
+  ]
+}

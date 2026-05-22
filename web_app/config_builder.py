@@ -23,8 +23,8 @@ DEFAULT_PLATFORM_MAPPINGS = {
     "抖音": {"data_sources": ["抖音app"], "special_soe_metric": None},
     "小红书": {"data_sources": ["小红书"], "special_soe_metric": None},
     "微信视频号": {"data_sources": ["微信视频号"], "special_soe_metric": "love_like"},
-    "B站": {"data_sources": ["视频"], "special_soe_metric": None},
-    "知乎": {"data_sources": ["问答"], "special_soe_metric": None},
+    "B站": {"data_sources": ["哔哩哔哩"], "special_soe_metric": None},
+    "知乎": {"data_sources": ["知乎"], "special_soe_metric": None},
 }
 
 
@@ -144,6 +144,8 @@ def build_query_config(payload: UiConfigPayload) -> dict[str, Any]:
         "brand_query_name": get_mcp_query_brand(brand),
         "mcp_brand_mapping": mcp_brand_mapping_for(configured_brands),
         "data_query_version": DATA_QUERY_VERSION,
+        "enable_category_control_table": True,
+        "enable_category_control_table_5": True,
         "competitors": competitors,
         "benchmark_brand": benchmark_brand,
         "start_date": period["start_date"],
@@ -178,6 +180,8 @@ def add_brand_query_fields(config: dict[str, Any]) -> dict[str, Any]:
     config["brand_query_name"] = get_mcp_query_brand(brand)
     config["mcp_brand_mapping"] = mcp_brand_mapping_for(configured_brands)
     config["data_query_version"] = DATA_QUERY_VERSION
+    config.setdefault("enable_category_control_table", True)
+    config.setdefault("enable_category_control_table_5", True)
     return config
 
 
@@ -216,6 +220,8 @@ def normalized_config_for_hash(config: dict[str, Any]) -> dict[str, Any]:
         "mcp_brand": str(config.get("mcp_brand", "")).strip(),
         "mcp_brand_mapping": config.get("mcp_brand_mapping", {}),
         "data_query_version": str(config.get("data_query_version", "")).strip(),
+        "enable_category_control_table": bool(config.get("enable_category_control_table", True)),
+        "enable_category_control_table_5": bool(config.get("enable_category_control_table_5", True)),
         "platform_mappings": config.get("platform_mappings", {}),
         "competitors": competitors,
         "start_date": config.get("start_date", ""),

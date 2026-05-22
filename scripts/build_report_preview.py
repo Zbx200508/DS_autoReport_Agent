@@ -21,9 +21,13 @@ from typing import Any
 KEY_INSIGHTS_HTML = Path("outputs") / "blocks" / "key_insights_block.html"
 BLOCK_1_1_HTML = Path("outputs") / "blocks" / "block_1_1_brand_overall_table.html"
 BLOCK_1_2_HTML = Path("outputs") / "blocks" / "block_1_2_platform_overall_table.html"
+CATEGORY_CONTROL_HTML = Path("outputs") / "category_control" / "category_control_table.html"
+CATEGORY_CONTROL_5_HTML = Path("outputs") / "category_control_5" / "category_control_table.html"
 BLOCK_1_1_JSON = Path("outputs") / "blocks" / "block_1_1_brand_overall_table.json"
 OUTPUT_HTML = Path("outputs") / "report_preview.html"
 OUTPUT_MANIFEST = Path("outputs") / "report_preview_manifest.json"
+CATEGORY_CONTROL_BLOCK_ID = "category_control_table"
+CATEGORY_CONTROL_5_BLOCK_ID = "category_control_table_5"
 
 MODULES = [
     {
@@ -38,6 +42,16 @@ MODULES = [
         "module_id": "key_insights_block",
         "source": KEY_INSIGHTS_HTML,
     },
+    {
+        "module_id": "category_control_table",
+        "source": CATEGORY_CONTROL_HTML,
+        "placeholder": "各品线重点媒介表现-1暂未生成，请检查 category_control_table_task 日志。",
+    },
+    {
+        "module_id": "category_control_table_5",
+        "source": CATEGORY_CONTROL_5_HTML,
+        "placeholder": "各品线重点媒介表现-2暂未生成，请检查 category_control_table_5_task 日志。",
+    },
 ]
 
 
@@ -46,18 +60,95 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--key-insights-html", default=str(KEY_INSIGHTS_HTML), help="Path to key insights block HTML.")
     parser.add_argument("--block-1-1-html", default=str(BLOCK_1_1_HTML), help="Path to block 1.1 HTML.")
     parser.add_argument("--block-1-2-html", default=str(BLOCK_1_2_HTML), help="Path to block 1.2 HTML.")
+    parser.add_argument("--category-control-html", default=str(CATEGORY_CONTROL_HTML), help="Path to category control table HTML.")
+    parser.add_argument("--block-metadata-json", help="Optional block metadata JSON used to locate dynamic block HTML paths.")
     parser.add_argument("--metadata-json", default=str(BLOCK_1_1_JSON), help="Path to block 1.1 JSON for report title metadata.")
     parser.add_argument("--output-html", default=str(OUTPUT_HTML), help="Path for assembled report preview HTML.")
     parser.add_argument("--manifest", default=str(OUTPUT_MANIFEST), help="Path for preview manifest JSON.")
     return parser.parse_args()
 
 
-def module_sources_from_args(args: argparse.Namespace) -> list[dict[str, Any]]:
-    return [
+def category_control_blocks_from_metadata(path: str | None, warnings: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    if not path:
+        return {}
+    metadata_path = Path(path)
+    if not metadata_path.exists():
+        warnings.append(
+            {
+                "stage": "read_block_metadata",
+                "source": str(metadata_path),
+                "message": "block metadata JSON file does not exist; using fallback category control HTML path",
+            }
+        )
+        return {}
+    try:
+        data = json.loads(metadata_path.read_text(encoding="utf-8-sig"))
+    except Exception as exc:
+        warnings.append(
+            {
+                "stage": "read_block_metadata",
+                "source": str(metadata_path),
+                "message": f"failed to read block metadata JSON; using fallback category control HTML path: {exc}",
+            }
+        )
+        return {}
+
+    blocks = data.get("blocks") if isinstance(data, dict) else data
+    if isinstance(blocks, dict):
+        blocks = [blocks]
+    if not isinstance(blocks, list):
+        warnings.append(
+            {
+                "stage": "read_block_metadata",
+                "source": str(metadata_path),
+                "message": "block metadata JSON does not contain a block list; using fallback category control HTML path",
+            }
+        )
+        return {}
+
+    result: dict[str, dict[str, Any]] = {}
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        block_id = block.get("block_id")
+        if block_id not in {CATEGORY_CONTROL_BLOCK_ID, CATEGORY_CONTROL_5_BLOCK_ID}:
+            continue
+        result[str(block_id)] = block
+    return result
+
+
+def module_sources_from_args(args: argparse.Namespace, warnings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    category_control_blocks = category_control_blocks_from_metadata(args.block_metadata_json, warnings)
+    modules = [
         {"module_id": "block_1_1_brand_overall_table", "source": Path(args.block_1_1_html)},
         {"module_id": "block_1_2_platform_overall_table", "source": Path(args.block_1_2_html)},
         {"module_id": "key_insights_block", "source": Path(args.key_insights_html)},
     ]
+    dynamic_tables = [
+        (
+            CATEGORY_CONTROL_BLOCK_ID,
+            Path(args.category_control_html),
+            "各品线重点媒介表现-1",
+            "各品线重点媒介表现-1暂未生成，请检查 category_control_table_task 日志。",
+        ),
+        (
+            CATEGORY_CONTROL_5_BLOCK_ID,
+            CATEGORY_CONTROL_5_HTML,
+            "各品线重点媒介表现-2",
+            "各品线重点媒介表现-2暂未生成，请检查 category_control_table_5_task 日志。",
+        ),
+    ]
+    for module_id, fallback_source, placeholder_title, placeholder in dynamic_tables:
+        block = category_control_blocks.get(module_id)
+        if block is not None and block.get("enabled") is False:
+            continue
+        source = fallback_source
+        if block is not None:
+            html_path = block.get("html_path")
+            if isinstance(html_path, str) and html_path.strip():
+                source = Path(html_path)
+        modules.append({"module_id": module_id, "source": source, "placeholder_title": placeholder_title, "placeholder": placeholder})
+    return modules
 
 
 def read_report_metadata(path: Path, warnings: list[dict[str, Any]]) -> dict[str, Any]:
@@ -143,12 +234,27 @@ def read_report_metadata(path: Path, warnings: list[dict[str, Any]]) -> dict[str
 def extract_style_content(html_text: str) -> list[str]:
     try:
         return [
-            match.strip()
+            sanitize_embedded_style(match.strip())
             for match in re.findall(r"<style\b[^>]*>(.*?)</style>", html_text, flags=re.IGNORECASE | re.DOTALL)
-            if match.strip()
+            if sanitize_embedded_style(match.strip())
         ]
     except Exception:
         return []
+
+
+def sanitize_embedded_style(style_text: str) -> str:
+    """Drop standalone-page html/body rules before embedding a block."""
+    sanitized = re.sub(
+        r"(?is)(?:html\s*,\s*)?body\s*\{[^{}]*\}",
+        "",
+        style_text,
+    )
+    sanitized = re.sub(
+        r"(?is)html\s*\{[^{}]*\}",
+        "",
+        sanitized,
+    )
+    return sanitized.strip()
 
 
 def extract_body_content(html_text: str) -> str:
@@ -176,6 +282,25 @@ def read_module_html(module: dict[str, Any], warnings: list[dict[str, Any]]) -> 
     }
 
     if not source.exists():
+        message = module.get("placeholder")
+        if isinstance(message, str) and message.strip():
+            placeholder_title = str(module.get("placeholder_title") or "各品线重点媒介表现-1")
+            result["body"] = (
+                '<section class="report-placeholder-module">'
+                f'<h1>{html.escape(placeholder_title, quote=True)}</h1>'
+                f'<p>{html.escape(message, quote=True)}</p>'
+                "</section>"
+            )
+            result["included"] = True
+            warnings.append(
+                {
+                    "stage": "read_module",
+                    "module_id": module["module_id"],
+                    "source": str(source),
+                    "message": "block HTML file does not exist; placeholder inserted",
+                }
+            )
+            return result
         warnings.append(
             {
                 "stage": "read_module",
@@ -340,8 +465,46 @@ def base_report_styles() -> str:
       margin: 0;
     }
 
+    .report-placeholder-module {
+      border: 1px dashed var(--report-line);
+      background: #fbfcff;
+      padding: 18px 20px;
+    }
+
+    .report-placeholder-module h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      line-height: 1.35;
+    }
+
+    .report-placeholder-module p {
+      margin: 0;
+      color: var(--report-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
     .report-module table {
       width: 100%;
+    }
+
+    .report-module-table table th:first-child,
+    .report-module-table table td:first-child {
+      text-align: center !important;
+      vertical-align: middle !important;
+    }
+
+    .report-module-category-control .category-control-table td.platform-cell,
+    .report-module-category-control table td.platform-cell {
+      text-align: center !important;
+      vertical-align: middle !important;
+      white-space: nowrap;
+    }
+
+    .report-module-category-control .category-control-table td.category-line-cell,
+    .report-module-category-control table td.category-line-cell {
+      text-align: center !important;
+      vertical-align: middle !important;
     }
 
     @media (max-width: 760px) {
@@ -384,6 +547,8 @@ def render_report_html(metadata: dict[str, Any], included_modules: list[dict[str
     key_insights = next((module for module in included_modules if module["module_id"] == "key_insights_block"), None)
     block_1_1 = next((module for module in included_modules if module["module_id"] == "block_1_1_brand_overall_table"), None)
     block_1_2 = next((module for module in included_modules if module["module_id"] == "block_1_2_platform_overall_table"), None)
+    category_control = next((module for module in included_modules if module["module_id"] == "category_control_table"), None)
+    category_control_5 = next((module for module in included_modules if module["module_id"] == "category_control_table_5"), None)
 
     content_parts: list[str] = []
     table_parts: list[str] = []
@@ -397,6 +562,10 @@ def render_report_html(metadata: dict[str, Any], included_modules: list[dict[str
 
     if key_insights:
         content_parts.append(f'<div class="report-module report-module-key-insights">\n{key_insights["body"]}\n</div>')
+    if category_control:
+        content_parts.append(f'<div class="report-module report-module-table report-module-category-control">\n{category_control["body"]}\n</div>')
+    if category_control_5:
+        content_parts.append(f'<div class="report-module report-module-table report-module-category-control">\n{category_control_5["body"]}\n</div>')
 
     body_content = "\n\n".join(content_parts)
     period_html = f'\n        <p class="report-period">{escape_text(period_text)}</p>' if period_text else ""
@@ -463,7 +632,7 @@ def main() -> int:
     args = parse_args()
     warnings: list[dict[str, Any]] = []
     metadata = read_report_metadata(Path(args.metadata_json), warnings)
-    module_results = [read_module_html(module, warnings) for module in module_sources_from_args(args)]
+    module_results = [read_module_html(module, warnings) for module in module_sources_from_args(args, warnings)]
     included_modules = [module for module in module_results if module.get("included")]
 
     output_html = Path(args.output_html)

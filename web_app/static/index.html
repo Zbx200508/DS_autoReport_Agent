@@ -878,6 +878,8 @@
     const stageLabels = {
       block_1_1: "1.1 整体表",
       block_1_2: "1.2 分平台表",
+      category_control_table_task: "各品线重点媒介表现-1",
+      category_control_table_5_task: "各品线重点媒介表现-2",
       insight_1_input: "本品洞察输入",
       insight_1_text: "本品洞察文案",
       insight_2_input: "竞品对标输入",
@@ -888,7 +890,7 @@
       report_preview: "报告拼装"
     };
     const stageOrder = Object.keys(stageLabels);
-    const statusText = {pending: "未开始", running: "生成中", success: "已完成", failed: "失败", skipped: "已跳过", warning: "警告"};
+    const statusText = {pending: "等待中", running: "生成中", success: "已完成", failed: "失败但不阻断", skipped: "已跳过", warning: "警告"};
     const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
     let savedQueryConfigFile = null;
     let savedConfigHash = null;

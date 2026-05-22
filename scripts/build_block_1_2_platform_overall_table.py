@@ -561,7 +561,8 @@ def render_html(block: dict[str, Any], show_notes: bool = False) -> str:
       font-weight: 700;
     }}
     td:first-child, th:first-child {{
-      text-align: left;
+      text-align: center;
+      vertical-align: middle;
       width: 14%;
     }}
     .sub {{
